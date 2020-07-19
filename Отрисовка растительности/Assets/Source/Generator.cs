@@ -51,3 +51,23 @@ public class Generator : MonoBehaviour
         }
     }
 }
+
+
+// var i:integer;
+
+// (* функция определеяет положение точки относительно вектора               *)
+// Function WherePoint(ax,ay,bx,by,px,py:real):integer;
+// var s :real;
+// begin
+//     s:=(bx-ax)*(py-ay)-(by-ay)*(px-ax);
+//     if s > 0 then WherePoint:=1
+//     else if s < 0 then WherePoint:=-1
+//     else WherePoint:=0;
+// end;
+
+// Begin (* Тело основной программы *)
+//    i:=WherePoint(1,1,8,8,2,5);
+//    if i > 0 then writeln('точка слева от вектора')
+//    else if i < 0 then writeln('точка справа от вектора')
+//    else writeln('на векторе, прямо по вектору или сзади вектора');
+// End.

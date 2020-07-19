@@ -13,7 +13,7 @@ public class Generator1 : MonoBehaviour
         // Функция для построения вершин
         public void GeneratePolygon(GameObject Vegetable)
         {   
-            Instantiate(Vegetable, new Vector3(X, 2f, Z), Quaternion.identity);
+            Instantiate(Vegetable, new Vector3(X, 0.5f, Z), Quaternion.identity);
         }
 
         // Конструктор класса
@@ -24,17 +24,58 @@ public class Generator1 : MonoBehaviour
         }
     }
 
-    public GameObject Vertex,TreePrototype,Circuit,Wall;
+    [Header("Доступные виды растений")]
+    public GameObject Vertex; // Вершина
+    public GameObject TreePrototype; // Прототип какого-то дерева
+    public GameObject Wall; // Чем отрисовывать контур полигона
 
+    [Header("Настройки генератора")]
+
+    // Строим ли вершины?
+    [Tooltip("Нужно ли строить отдельно вершины?")]
+    public bool ExistVertex;
+
+    // Плотность заполнения 
+    [Tooltip("Параметр заполненности полигона, не используется в случае случайной генерации координат, используется при построении контура!")]
+    public int Step;
+    
+    // Случайный ли координаты?
+    [Tooltip("Параметр рандомизации координат")]
+    public bool isRandom;
+    
+    // Если используется рандом, кол-во сгенерированных деревьев
+    [Tooltip("Требуемое кол-во деревьев, используется только при случайной генерации координат!")]
+    public int CountOfRandomTrees;
+
+    // Строим ли контур?
+    [Tooltip("Нужно ли строить контур полигона, шаг контура совпадает с шагом генерации (Step)")]
+    public bool ExistCircuit;
+
+
+    // Список вершин
     public List <Point> Vegetables = new List<Point>();
     // Количество вершин в полигоне
     int NumberOfVegetables = 5;
+    
+    // Функция проверки, есть ли такая координата в списке, требуется для исключения дублей
+    bool CheckCoordinate(float X,float Y)
+    {
+        foreach (Point p in Vegetables)
+        {
+            if (p.X == X && p.Z == Y)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 
     // Алгоритм Брезенхэма
     void MakeCircuit(int NumberOfVegetables)
     {
         for(int i = 0;i < NumberOfVegetables;i++)
         {
+            int counter = 0; // Счётчик, чтобы не отрисовывать вершины 
             float x1,y1,x2,y2; // Переменные для удобной обработки координат вершин
 
             x1 = Vegetables[i].X;
@@ -59,7 +100,14 @@ public class Generator1 : MonoBehaviour
         
             while(x1 != x2 || y1 != y2) 
             {
-                Instantiate(Wall, new Vector3(x1, 1, y1), Quaternion.identity);
+                if(counter != 0)
+                {
+                    Vegetables.Add(new Point(x1,y1));
+                    Instantiate(Wall, new Vector3(x1, 0.5f, y1), Quaternion.identity);
+                    Debug.Log(x1 + " " + y1);
+                }
+                else counter++;
+                
                 float error2 = error * 2;
                 
                 if(error2 > -deltaY) 
@@ -100,33 +148,65 @@ public class Generator1 : MonoBehaviour
             } 
             else if(Prod < 0) Prod = -1; // Слева
             else if(Prod == 0) Prod =  0; // Лежит на стороне
-            Debug.Log(Prod);
         }
-        Debug.Log(Prod);
         return (int)Prod;
+    }
+
+    // Функция построения леса по жёстким координатам
+    void MakeForest(float Xmax,float Xmin,float Ymax, float Ymin)
+    {
+        for(int i = (int)Xmin;i < (int)Xmax;i += Step)
+        {
+            for(int j = (int)Ymin;j < (int)Ymax;j += Step)
+            {
+                int Triger = CheckInsidePolygon(i,j);
+                if(Triger == -1)
+                {
+                    if(CheckCoordinate(i,j) == true)
+                    {
+                        Instantiate(TreePrototype, new Vector3(i, 0.5f, j), Quaternion.identity);       
+                        Vegetables.Add(new Point(i,j));
+                    }
+                }
+            }
+        }
+    }
+
+    // Функция построения леса на основе случайных координат
+    void MakeRandomForest(float Xmax,float Xmin,float Ymax, float Ymin)
+    {
+        for(int i = 0; i < CountOfRandomTrees; i++)
+        {
+            float X_Coordinate = Mathf.RoundToInt(Random.Range(Xmin,Xmax));
+            float Y_Coordinate = Mathf.RoundToInt(Random.Range(Ymin,Ymax));
+            int Triger = CheckInsidePolygon(X_Coordinate,Y_Coordinate);
+            if(Triger == -1)
+            {
+                if(CheckCoordinate(X_Coordinate,Y_Coordinate) == true)
+                {
+                    Instantiate(TreePrototype, new Vector3(X_Coordinate, 0.5f, Y_Coordinate), Quaternion.identity); 
+                    Vegetables.Add(new Point(X_Coordinate,Y_Coordinate));
+                }
+            }
+        }
     }
 
     void Start()
     {
-        // Задаем тестовый список координат (выпуклый многоугольник)
+        // Задаем тестовый список координат (выпуклый многоугольник), временно!
         Vegetables.Add(new Point(4,7));
         Vegetables.Add(new Point(10,10));
         Vegetables.Add(new Point(15,4));
         Vegetables.Add(new Point(11,1));
         Vegetables.Add(new Point(6,1));
-        
-        // Строим вершины
-        foreach(Point p in Vegetables)
-        {
-            p.GeneratePolygon(Vertex);
-        }
 
-        // С помощью алгоритма Брезенхэма строим контур
-        MakeCircuit(NumberOfVegetables);
-
-        // Для генерации случайных деревьев необходимо ограничить территорию для рандома
-        // Найдём "крайние вершины" на основе их будем генерировать случайные координаты
+        // Для генерации деревьев необходимо ограничить территорию
+        // Найдём "крайние вершины" на основе их будем генерировать координаты
         float Xmin= 100,Xmax = 0,Ymin = 100,Ymax = 0;
+
+        // Найдём длину ребра по X, может быть понадобится в будущем
+        float LengthX = Xmax - Xmin;
+        float LengthY = Ymax - Ymin;
 
         // Находим максимальную вершину 
         foreach(Point p in Vegetables)
@@ -137,22 +217,29 @@ public class Generator1 : MonoBehaviour
             if(p.Z > Ymin) Ymax = p.Z;
         }
 
-        // Найдём длину ребра по X, может быть понадобится 
-        float LengthX = Xmax - Xmin;
-        float LengthY = Ymax - Ymin;
-        
-        // Строим случайный лес :)
-        int CountOfRandomTrees = 20;
-
-        for(int i = 0; i < CountOfRandomTrees; i++)
+        // Строим вершины
+        if(ExistVertex == true)
         {
-            float X_Coordinate = Mathf.RoundToInt(Random.Range(Xmin,Xmax));
-            float Y_Coordinate = Mathf.RoundToInt(Random.Range(Ymin,Ymax));
-            int Triger = CheckInsidePolygon(X_Coordinate,Y_Coordinate);
-            if(Triger == -1 || Triger == 0)
+            foreach(Point p in Vegetables)
             {
-                Instantiate(TreePrototype, new Vector3(X_Coordinate, 1f, Y_Coordinate), Quaternion.identity);       
+                p.GeneratePolygon(Vertex);
             }
+        }
+
+        // С помощью алгоритма Брезенхэма строим контур, если требуется (пока что степ не написан)
+        if(ExistCircuit == true)
+        {
+            MakeCircuit(NumberOfVegetables);
+        }
+
+        // Вызываем функцию построения деревьев в полигоне
+        if(isRandom == true)
+        {
+            MakeRandomForest(Xmax,Xmin,Ymax,Ymin);
+        }
+        else
+        {
+            MakeForest(Xmax,Xmin,Ymax,Ymin);
         }
     }
 }
