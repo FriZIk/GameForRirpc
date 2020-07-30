@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Generator : MonoBehaviour
+public class Test : MonoBehaviour
 {
     [Header("Доступные виды растений")]
     public GameObject Vertex; // Вершина
@@ -128,9 +128,9 @@ public class Generator : MonoBehaviour
         y = (a2 * c1 - a1 * c2) / det;
     }
 
-    bool CheckInsidePolygon(float X_Coordinate,float Y_Coordinate)
+    bool CheckInsidePolygonNV(float X_Coordinate,float Y_Coordinate)
     {
-        float X = X_Coordinate + 1,Y = Y_Coordinate; // Дополнительные точки для построения уравнения прямых
+        float X = X_Coordinate + 3,Y = Y_Coordinate; // Дополнительные точки для построения уравнения прямых
         float A1, B1, C1;// Коэфициенты для уравнения прямой
 
         // Расчёт коэфициентов прямой для первой точки
@@ -145,7 +145,7 @@ public class Generator : MonoBehaviour
             if(p.x < Xmin) Xmin = p.x;
             if(p.x > Xmax) Xmax = p.x;
             if(p.z < Ymin) Ymin = p.z;
-            if(p.z > Ymax) Ymax = p.z;
+            if(p.z > Ymin) Ymax = p.z;
         }
 
         // Проверка внтури ли точки?
@@ -161,7 +161,6 @@ public class Generator : MonoBehaviour
                 B2 = Vegetables[0].x - Vegetables[i].x;
                 C2 = Vegetables[i].x * Vegetables[0].z - Vegetables[0].x * Vegetables[i].z;
             }
-
             else
             {
                 A2 = Vegetables[i].z - Vegetables[i + 1].z;
@@ -172,26 +171,21 @@ public class Generator : MonoBehaviour
             if(IsParall(A1,A2,B1,B2) == 1)
             {
                 Intersect(A1,A2,B1,B2,C1,C2); // Получаем точку пересечения
-                Debug.Log("Точка пересечения:" + x + " " + y);
 
-                int j;
-                float VerPointX = 0f,VerPointY = 0f;
-                for(j = 0;j < NumberOfVegetables;j++)
-                {
-                    if(x == Vegetables[j].x && y == Vegetables[j].z)
-                    {
-                        Debug.Log("Вершина!!!");
-                        VerPointX = Vegetables[j].x;
-                        VerPointY = Vegetables[j].z;
-                        break;
-                    }
-                }
-                Debug.Log("Найдено совпадений " + j + " из " + NumberOfVegetables);
+                // int j;
+                // for(j = 0;j < NumberOfVegetables;j++)
+                // {
+                //     if(x == Vegetables[j].x && y == Vegetables[j].z)
+                //     {
+                //         Debug.Log("Вершина!!!");
+                //         break;
+                //     }
+                // }
+                // Debug.Log("Вот так:" + j);
 
-                if(j != NumberOfVegetables && x > Xmin && y > Ymin && X_Coordinate < VerPointX) return true;
-                else if(x <= Xmax && x > Xmin && y > Ymin && y < Ymax && x > X_Coordinate) // Прямая вправо
+                //if(j != NumberOfVegetables && x > X_Coordinate && X_Coordinate > Xmin && y > Ymin) return true;
+                if(x > X_Coordinate && x < Xmax && X_Coordinate > Xmin)
                 {
-                    Debug.Log("Точка удовлетворяет условию!");
                     CounterOfIntersects++; // Если число пересечений чётно, то точка снаружи, если нечётно, то внутри
                 }
             }
@@ -206,23 +200,17 @@ public class Generator : MonoBehaviour
     // Функция построения леса по жёстким координатам
     void MakeForest(float Xmax,float Xmin,float Ymax, float Ymin)
     {
-        for(int i = (int)Xmin + 1;i < (int)Xmax;i += Step)
+        for(int i = (int)Xmin;i < (int)Xmax;i += Step)
         {
             for(int j = (int)Ymin;j < (int)Ymax;j += Step)
             {
-                Debug.Log("Обрабатываем точка: " + i + " " + j);
-                if(CheckInsidePolygon(i,j) == true)
+                if(CheckInsidePolygonNV(i,j) == true)
                 {
-                    Debug.Log("Точка внутри полигона!");
                     if(CheckCoordinate(i,j,Vegetables) == true)
                     {
                         Instantiate(TreePrototype, new Vector3(i, 0.5f, j), Quaternion.identity);       
                         Vegetables.Add(new Vector3(i,0.5f,j));
                     }
-                }
-                else
-                {
-                    Debug.Log("Точка снаружи полигона!");
                 }
             }
         }
@@ -233,9 +221,9 @@ public class Generator : MonoBehaviour
     {
         for(int i = 0; i < CountOfRandomTrees; i++)
         {
-            float X_Coordinate = Mathf.RoundToInt(Random.Range(Xmin + 1,Xmax - 1));
-            float Y_Coordinate = Mathf.RoundToInt(Random.Range(Ymin + 1,Ymax - 1));
-            if(CheckInsidePolygon(X_Coordinate,Y_Coordinate) == true);
+            float X_Coordinate = Mathf.RoundToInt(Random.Range(Xmin,Xmax));
+            float Y_Coordinate = Mathf.RoundToInt(Random.Range(Ymin,Ymax));
+            if(CheckInsidePolygonNV(X_Coordinate,Y_Coordinate) == true);
             {
                 if(CheckCoordinate(X_Coordinate,Y_Coordinate,Vegetables) == true)
                 {
@@ -258,7 +246,7 @@ public class Generator : MonoBehaviour
             if(p.x < Xmin) Xmin = p.x;
             if(p.x > Xmax) Xmax = p.x;
             if(p.z < Ymin) Ymin = p.z;
-            if(p.z > Ymax) Ymax = p.z;
+            if(p.z > Ymin) Ymax = p.z;
         }
 
         // Строим вершины
@@ -275,6 +263,7 @@ public class Generator : MonoBehaviour
         {
             MakeCircuit(NumberOfVegetables);
         }
+
         // Вызываем функцию построения деревьев в полигоне
         if(isRandom == true)
         {
