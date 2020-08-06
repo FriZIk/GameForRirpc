@@ -187,6 +187,11 @@ public class Generator : MonoBehaviour
                     }
                 }
                 Debug.Log("Найдено совпадений " + j + " из " + NumberOfVegetables);
+                // Необходимо ограничить кооридинату для того чтобы прямые были так же лучами и шли только вперёд
+                // x - координата точки пересечения
+                // X_Coordinate - начальная точка для которой мы определяем пересекает ли луч проведённый из неё прямую
+                // Vegetables[i].x - начальная точка для отрезка вершины
+                // Возможно стоит использвоать другой способ зарисовки многоугольника, например прямой по точкам пересечения
 
                 if(j != NumberOfVegetables && x > Xmin && y > Ymin && X_Coordinate < VerPointX) return true;
                 else if(x <= Xmax && x > Xmin && y > Ymin && y < Ymax && x > X_Coordinate) // Прямая вправо
@@ -201,6 +206,112 @@ public class Generator : MonoBehaviour
         // Финальное сравнение
         if(CounterOfIntersects % 2 != 0) return true;
         else return false;
+    }
+
+
+
+    // Пробуем сделать с помощью прямой
+    public void GeneratorTest()
+    {
+         // Находим максимальную вершину
+        float Xmin= 100,Xmax = 0,Ymin = 100,Ymax = 0;
+        foreach(Vector3 p in Vegetables)
+        {
+            if(p.x < Xmin) Xmin = p.x;
+            if(p.x > Xmax) Xmax = p.x;
+            if(p.z < Ymin) Ymin = p.z;
+            if(p.z > Ymax) Ymax = p.z;
+        }
+
+        // Список ззранящий значения всех точек пересечения
+        List <Vector3> PointsOfIntersection = new List<Vector3>();
+        
+        // Точки прямой пересекающей стороны
+        float X = Xmin;
+        float X1 = Xmax;
+        float Y,Y1;
+
+        int CounterOfIntersects = 0; // Счётчик количества точек пересечения 
+        // Проходимся по всему массиву и находим все точки пересечения точек сдвигая прямую по оси Y(Z)
+        for(int i = (int)Ymax - 1;i > (int)Ymin;i--)
+        {
+            Y = i;Y1 = Y;
+            Debug.Log("Строим прямую с началов в точке: x=" + X + " y=" + Y);
+            // Точка X не меняется, изменяется только Y
+            float A1, B1, C1;// Коэфициенты для уравнения прямой пересекающей стороны
+            A1 = Y - Y1;
+            B1 = X1 - X;
+            C1 = X * Y1 - X1 * Y;
+
+            // Находим точки пересечения этйо прямой и всех сторон
+            for(int j = 0;j < NumberOfVegetables;j++)
+            {
+                // Высчитывание коэфициентов для сторон многоугольника
+                float A2, B2, C2;
+                if(j == NumberOfVegetables - 1)
+                {
+                    A2 = Vegetables[j].z - Vegetables[0].z;
+                    B2 = Vegetables[0].x - Vegetables[j].x;
+                    C2 = Vegetables[j].x * Vegetables[0].z - Vegetables[0].x * Vegetables[j].z;
+                }
+                else
+                {
+                    A2 = Vegetables[j].z - Vegetables[j + 1].z;
+                    B2 = Vegetables[j + 1].x - Vegetables[j].x;
+                    C2 = Vegetables[j].x * Vegetables[j + 1].z - Vegetables[j + 1].x * Vegetables[j].z;
+                } 
+
+                if(IsParall(A1,A2,B1,B2) == 1)
+                {
+                    Intersect(A1,A2,B1,B2,C1,C2); // Получаем точку пересечения
+                    if(x >= Xmin && x <= Xmax)
+                    {
+                        CounterOfIntersects++;
+                        PointsOfIntersection.Add(new Vector3(x,0.5f,y)); // Добавляем точку в список всех точек пересечения
+                        Debug.Log("Точка пересечения с прямой " + (j + 1) + ": x=" + x + " y=" +y);
+                    }
+                }
+            }
+        }
+        Debug.Log("Количество пересечений:" + CounterOfIntersects);
+
+        // Выведем для дебага что у нас хрониться внутри
+        foreach(Vector3 p in PointsOfIntersection)
+        {
+            Debug.Log(p.x + " " + p.z);
+        }
+
+        // В найденные промежутки между координатами, которые хранятся в списке, отрисовываем прямые
+        for(int i = 0;i < CounterOfIntersects - 1;i++)
+        {
+            float FinishX = PointsOfIntersection[i].x;
+            float StartX = PointsOfIntersection[i + 1].x;
+            float ConstY = PointsOfIntersection[i].z;
+            Debug.Log("Стартовая координата " + StartX + " " + ConstY + ", финишная координата " + FinishX + " " +ConstY);
+
+            for(int j = (int)StartX+1;j <= (int)FinishX;j++)
+            {
+                if(CheckCoordinate(j,ConstY,Vegetables) == true)
+                {
+                    if(isRandom == true)
+                    {
+                        Debug.Log(StartX-FinishX);
+                        Instantiate(TreePrototype, new Vector3(j, 0.5f, ConstY), Quaternion.identity);
+                        Vegetables.Add(new Vector3(j,0.5f,ConstY));      
+                    }
+                    else
+                    {
+                        int HowIsiT = Mathf.RoundToInt(Random.Range(0,100));
+                        if(HowIsiT > 50)
+                        {
+                            Instantiate(TreePrototype, new Vector3(j, 0.5f, ConstY), Quaternion.identity);
+                            Vegetables.Add(new Vector3(j,0.5f,ConstY));  
+                        }
+                    }
+                }
+            }
+                // Тут происходит какой-то неадекват, переписать и проверить ещё раз
+        }
     }
 
     // Функция построения леса по жёстким координатам
@@ -275,14 +386,18 @@ public class Generator : MonoBehaviour
         {
             MakeCircuit(NumberOfVegetables);
         }
+
+
+        GeneratorTest();
         // Вызываем функцию построения деревьев в полигоне
-        if(isRandom == true)
-        {
-            MakeRandomForest(Xmax,Xmin,Ymax,Ymin);
-        }
-        else
-        {
-            MakeForest(Xmax,Xmin,Ymax,Ymin);
-        }
+        // if(isRandom == true)
+        // {
+        //     MakeRandomForest(Xmax,Xmin,Ymax,Ymin);
+        // }
+        // else
+        // {
+        //     GeneratorTest();
+        //     //MakeForest(Xmax,Xmin,Ymax,Ymin);
+        // }
     }
 }
