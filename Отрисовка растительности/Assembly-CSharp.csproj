@@ -39,7 +39,8 @@
      <Compile Include="Assets\Assets\AlignedGames\Polygonal Foliage Asset Package\Scripts\Utility\FlyCameraBehaviour.cs" />
      <Compile Include="Assets\Source\CharacterController.cs" />
      <Compile Include="Assets\Source\Generator.cs" />
-     <Compile Include="Assets\Source\Generator1.cs" />
+     <Compile Include="Assets\Source\GoTest.cs" />
+     <Compile Include="Assets\Source\Test.cs" />
      <None Include="Assets\Assets\AlignedGames\Polygonal Foliage Asset Package\Shaders\Cloud.shader" />
      <None Include="Assets\Assets\AlignedGames\Polygonal Foliage Asset Package\Shaders\Diffuse.shader" />
     <Reference Include="UnityEngine">
